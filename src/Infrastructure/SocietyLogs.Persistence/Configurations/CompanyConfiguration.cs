@@ -29,4 +29,5 @@ namespace SocietyLogs.Persistence.Configurations
                 .OnDelete(DeleteBehavior.Restrict); // Firma silinirse pozisyonlar silinmesin (Soft Delete var ama yine de güvenlik)
         }
     }
+
 }
