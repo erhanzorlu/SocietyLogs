@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="docker-compose.yml" />
+  </Folder>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Core/">
+    <Project Path="src/Core/SocietyLogs.Application/SocietyLogs.Application.csproj" />
+    <Project Path="src/Core/SocietyLogs.Domain/SocietyLogs.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Infrastructure/">
+    <Project Path="src/Infrastructure/SocietyLogs.Infrastructure/SocietyLogs.Infrastructure.csproj" />
+    <Project Path="src/Infrastructure/SocietyLogs.Persistence/SocietyLogs.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/src/Presentation/">
+    <Project Path="src/Presentation/SocietyLogs.API/SocietyLogs.API.csproj" />
+  </Folder>
+</Solution>
