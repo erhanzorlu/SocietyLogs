@@ -10,13 +10,17 @@ namespace SocietyLogs.Application.Common.Interfaces
     public interface IGenericRepository<T> where T : class, IEntity
     {
         // --- Read (Okuma) İşlemleri (Performans için 'tracking' parametresi var) ---
-        Task<T?> GetByIdAsync(Guid id, bool tracking = true, CancellationToken cancellationToken = default);
 
-        Task<T?> GetSingleAsync(Expression<Func<T, bool>> predicate, bool tracking = true, CancellationToken cancellationToken = default);
+        // GetSingleAsync'e parametreyi ekliyoruz.
+        Task<T?> GetSingleAsync(Expression<Func<T, bool>> predicate, bool tracking = true, bool ignoreQueryFilters = false, CancellationToken cancellationToken = default);
 
-        Task<List<T>> GetAllAsync(bool tracking = true, CancellationToken cancellationToken = default);
+        // GetWhereAsync zaten parametreye sahipti, dokunmana gerek yok (ama kontrol et).
+        Task<List<T>> GetWhereAsync(Expression<Func<T, bool>> predicate, bool tracking = true, bool ignoreQueryFilters = false, CancellationToken cancellationToken = default);
 
-        Task<List<T>> GetWhereAsync(Expression<Func<T, bool>> predicate, bool tracking = true, CancellationToken cancellationToken = default);
+        Task<List<T>> GetAllAsync(bool tracking = true, bool ignoreQueryFilters = false, CancellationToken cancellationToken = default);
+
+
+        Task<T?> GetByIdAsync(Guid id, bool tracking = true, bool ignoreQueryFilters = false, CancellationToken cancellationToken = default);
 
         // --- Write (Yazma) İşlemleri (UnitOfWork'te Save çağrılır) ---
 

@@ -20,38 +20,60 @@ namespace SocietyLogs.Persistence.Repositories
         }
 
         #region Read Operations
-        public async Task<T?> GetByIdAsync(Guid id, bool tracking = true, CancellationToken cancellationToken = default)
+        public async Task<T?> GetByIdAsync(Guid id, bool tracking = true, bool ignoreQueryFilters = false, CancellationToken cancellationToken = default)
         {
             var query = _dbSet.AsQueryable();
-            if (!tracking)
-                query = query.AsNoTracking(); // Performans Optimizasyonu
+
+            if (!tracking) query = query.AsNoTracking();
+
+            if (ignoreQueryFilters) query = query.IgnoreQueryFilters();
 
             return await query.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
         }
 
-        public async Task<T?> GetSingleAsync(Expression<Func<T, bool>> predicate, bool tracking = true, CancellationToken cancellationToken = default)
+
+
+        public async Task<List<T>> GetAllAsync(bool tracking = true, bool ignoreQueryFilters = false, CancellationToken cancellationToken = default)
         {
             var query = _dbSet.AsQueryable();
+
             if (!tracking) query = query.AsNoTracking();
+
+            if (ignoreQueryFilters) query = query.IgnoreQueryFilters(); // 🔓 KİLİDİ AÇAN KOD
+
+            return await query.ToListAsync(cancellationToken);
+        }
+
+        public async Task<T?> GetSingleAsync(Expression<Func<T, bool>> predicate, bool tracking = true, bool ignoreQueryFilters = false, CancellationToken cancellationToken = default)
+        {
+            var query = _dbSet.AsQueryable();
+
+            if (!tracking)
+                query = query.AsNoTracking();
+
+            // EKSİK OLAN KISIM BURASIYDI:
+            if (ignoreQueryFilters)
+                query = query.IgnoreQueryFilters();
 
             return await query.FirstOrDefaultAsync(predicate, cancellationToken);
         }
 
-        public async Task<List<T>> GetAllAsync(bool tracking = true, CancellationToken cancellationToken = default)
+        public async Task<List<T>> GetWhereAsync(Expression<Func<T, bool>> predicate, bool tracking = true, bool ignoreQueryFilters = false, CancellationToken cancellationToken = default)
         {
-            var query = _dbSet.AsQueryable();
-            if (!tracking) query = query.AsNoTracking();
-
-            return await query.ToListAsync(cancellationToken);
-        }
-
-        public async Task<List<T>> GetWhereAsync(Expression<Func<T, bool>> predicate, bool tracking = true, CancellationToken cancellationToken = default)
-        {
+            // Önce sorguyu oluştur (Henüz DB'ye gitmedi)
             var query = _dbSet.Where(predicate);
-            if (!tracking) query = query.AsNoTracking();
+
+            if (!tracking)
+                query = query.AsNoTracking();
+
+            // SENİN KODUNDA EKSİK OLAN KISIM BURASIYDI:
+            // Parametre vardı ama işlevi yoktu.
+            if (ignoreQueryFilters)
+                query = query.IgnoreQueryFilters();
 
             return await query.ToListAsync(cancellationToken);
         }
+
         #endregion
 
         #region Write Operations
@@ -102,6 +124,8 @@ namespace SocietyLogs.Persistence.Repositories
         {
             _dbSet.RemoveRange(entities);
         }
+
+
         #endregion
     }
 }

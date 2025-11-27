@@ -21,6 +21,7 @@ namespace SocietyLogs.Persistence.Contexts
         // Tablolarımız
         public DbSet<Company> Companies { get; set; }
         public DbSet<CompanyPosition> CompanyPositions { get; set; }
+        public DbSet<Category> Categories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
