@@ -1,13 +1,16 @@
-using SocietyLogs.API.Extensions;
+using SocietyLogs.Application; 
+using SocietyLogs.Persistence; 
 
 var builder = WebApplication.CreateBuilder(args);
 
 // --- 1. KENDÝ SERVÝSLERÝMÝZ (Onion Architecture Baðlantýlarý) ---
 // Infrastructure (Veritabaný, Repo, Interceptor)
-builder.Services.AddInfrastructureServices(builder.Configuration);
-// Application (MediatR, Validation, Mapping)
+//builder.Services.AddInfrastructureServices(builder.Configuration);
+// 1. Application Katmaný: "Benim servislerimi yükle"
 builder.Services.AddApplicationServices();
 
+// 2. Persistence Katmaný: "Veritabaný ve repolarý ayarla"
+builder.Services.AddPersistenceServices(builder.Configuration);
 // --- 2. API STANDART SERVÝSLERÝ ---
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
