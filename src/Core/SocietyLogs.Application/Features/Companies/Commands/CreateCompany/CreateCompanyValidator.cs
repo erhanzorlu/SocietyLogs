@@ -10,11 +10,13 @@ namespace SocietyLogs.Application.Features.Companies.Commands.Create
         public CreateCompanyValidator()
         {
             RuleFor(x => x.CompanyName)
-                .NotEmpty().WithMessage("Firma adı boş olamaz.")
-                .MaximumLength(100).WithMessage("Firma adı 100 karakterden uzun olamaz.");
+                .NotEmpty().WithMessage("Şirket adı boş olamaz.")
+                .MaximumLength(100).WithMessage("Şirket adı 100 karakterden uzun olamaz.");
 
             RuleFor(x => x.Description)
                 .MaximumLength(500).WithMessage("Açıklama çok uzun.");
+
+            // İleride buraya LogoUrl için Regex kontrolü de eklenebilir.
         }
     }
 }

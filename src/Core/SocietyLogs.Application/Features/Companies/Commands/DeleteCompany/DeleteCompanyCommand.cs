@@ -29,7 +29,7 @@ namespace SocietyLogs.Application.Features.Companies.Commands.DeleteCompany
             if (entity == null) return false;
 
             // 2. Sil (Soft Delete devreye girecek)
-            _repository.Delete(entity);
+            _repository.DeleteAsync(entity);
 
             // 3. Kaydet
             await _unitOfWork.SaveChangesAsync(cancellationToken);

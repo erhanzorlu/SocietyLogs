@@ -5,6 +5,10 @@ using System.Text;
 
 namespace SocietyLogs.Application.Features.Companies.Commands.Create
 {
-    // Bu komut çalışınca geriye Guid (oluşan ID) dönecek.
-    public record CreateCompanyCommand(string CompanyName, string? Description) : IRequest<Guid>;
+    // MediatR'a diyoruz ki: "Bu komut çalıştığında geriye Guid (oluşan şirketin ID'si) dönecek."
+    public record CreateCompanyCommand(
+        string CompanyName,
+        string? Description,
+        string? LogoUrl
+    ) : IRequest<Guid>;
 }

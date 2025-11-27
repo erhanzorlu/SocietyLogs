@@ -20,13 +20,20 @@ namespace SocietyLogs.API.Controllers
             _mediator = mediator;
         }
 
-        // CREATE
+
+
         [HttpPost]
-        public async Task<IActionResult> Create(CreateCompanyCommand command)
+        public async Task<IActionResult> Create([FromBody] CreateCompanyCommand command)
         {
-            var id = await _mediator.Send(command);
-            return Ok(id);
+            // İsteği (Command) MediatR hattına bırakıyoruz.
+            // Hangi Handler'ın çalışacağını MediatR kendisi buluyor.
+            var createdCompanyId = await _mediator.Send(command);
+
+            // 201 Created döner ve header'da yeni kaynağın ID'sini veririz.
+            return CreatedAtAction(nameof(Create), new { id = createdCompanyId }, createdCompanyId);
         }
+
+
 
         // READ ALL
         [HttpGet]

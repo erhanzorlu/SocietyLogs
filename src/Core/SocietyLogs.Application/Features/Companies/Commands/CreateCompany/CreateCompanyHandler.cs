@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using Mapster;
+using MediatR;
 using SocietyLogs.Application.Common.Interfaces;
 using SocietyLogs.Domain.Entities;
 using System;
@@ -9,31 +10,33 @@ namespace SocietyLogs.Application.Features.Companies.Commands.Create
 {
     public class CreateCompanyHandler : IRequestHandler<CreateCompanyCommand, Guid>
     {
-        private readonly IGenericRepository<Company> _repository;
         private readonly IUnitOfWork _unitOfWork;
 
-        public CreateCompanyHandler(IGenericRepository<Company> repository, IUnitOfWork unitOfWork)
+        // Constructor Injection: Sadece UnitOfWork istiyoruz, Repository değil!
+        public CreateCompanyHandler(IUnitOfWork unitOfWork)
         {
-            _repository = repository;
             _unitOfWork = unitOfWork;
         }
 
         public async Task<Guid> Handle(CreateCompanyCommand request, CancellationToken cancellationToken)
         {
-            // 1. Entity'yi oluştur
-            var company = new Company
-            {
-                CompanyName = request.CompanyName,
-                Description = request.Description
-            };
+            // 1. MAPPING (Mapster):
+            // Gelen Command nesnesini Company Entity'sine çevir.
+            // Mapster'ın güzelliği: Ayrı bir profil dosyası yazmana gerek yok, isimlendirme aynıysa otomatik eşler.
+            // .Adapt<HedefTip>() metodu Mapster'dan gelir.
+            var companyEntity = request.Adapt<Company>();
 
-            // 2. Repository'e (Hafızaya) ekle
-            await _repository.AddAsync(company);
+            // 2. LOGIC & DATABASE:
+            // "Akıllı" UnitOfWork sayesinde Repository<Company>() anlık oluşturulur (veya cache'den gelir).
+            await _unitOfWork.Repository<Company>().AddAsync(companyEntity);
 
-            // 3. Veritabanına kesin olarak kaydet (Commit)
+            // 3. COMMIT:
+            // İşlemi veritabanına kaydet.
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            return company.Id;
+            // 4. RETURN:
+            // Oluşan ID'yi geri dön.
+            return companyEntity.Id;
         }
     }
 }
