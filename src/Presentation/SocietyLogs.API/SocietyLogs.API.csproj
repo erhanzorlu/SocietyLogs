@@ -16,11 +16,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Middlewares\" />
+    <ProjectReference Include="..\..\Infrastructure\SocietyLogs.Persistence\SocietyLogs.Persistence.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Infrastructure\SocietyLogs.Persistence\SocietyLogs.Persistence.csproj" />
+    <Folder Include="Middlewares\" />
   </ItemGroup>
 
 </Project>

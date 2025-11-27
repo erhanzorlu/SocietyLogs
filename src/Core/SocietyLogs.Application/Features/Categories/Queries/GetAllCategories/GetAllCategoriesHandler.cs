@@ -30,7 +30,7 @@ namespace SocietyLogs.Application.Features.Categories.Queries.GetAllCategories
             //    .GetWhereAsync(x => !x.IsDeleted, tracking: false, cancellationToken);
 
             var categories = await _unitOfWork.Repository<Category>()
-                                              .GetAllAsync(tracking: false);
+                                              .GetAllActiveAsync(tracking: false);
 
             // 2. Mapping (Entity List -> DTO List)
             // Mapster listeyi otomatik çevirir. Döngü kurmana gerek yok.

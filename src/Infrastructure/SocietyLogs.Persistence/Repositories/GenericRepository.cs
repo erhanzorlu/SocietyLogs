@@ -37,9 +37,12 @@ namespace SocietyLogs.Persistence.Repositories
         {
             var query = _dbSet.AsQueryable();
 
-            if (!tracking) query = query.AsNoTracking();
+            // Tracking kontrolü
+            if (!tracking)
+                query = query.AsNoTracking();
 
-            if (ignoreQueryFilters) query = query.IgnoreQueryFilters(); // 🔓 KİLİDİ AÇAN KOD
+            // FİLTRELEME YOK:
+            // Hiçbir şart koşmuyoruz, veritabanında ne varsa (silinen/silinmeyen) hepsini getirir.
 
             return await query.ToListAsync(cancellationToken);
         }
@@ -70,6 +73,22 @@ namespace SocietyLogs.Persistence.Repositories
             // Parametre vardı ama işlevi yoktu.
             if (ignoreQueryFilters)
                 query = query.IgnoreQueryFilters();
+
+            return await query.ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<T>> GetAllActiveAsync(bool tracking = true, CancellationToken cancellationToken = default)
+        {
+            var query = _dbSet.AsQueryable();
+
+            // Tracking kontrolü
+            if (!tracking)
+                query = query.AsNoTracking();
+
+            // FİLTRELEME BURADA:
+            // Global Query Filter kullanmadığımız için, elle şart koşuyoruz.
+            // "IsDeleted" kolonu false olanları (silinmemişleri) getir.
+            query = query.Where(x => EF.Property<bool>(x, "IsDeleted") == false);
 
             return await query.ToListAsync(cancellationToken);
         }
@@ -124,6 +143,8 @@ namespace SocietyLogs.Persistence.Repositories
         {
             _dbSet.RemoveRange(entities);
         }
+
+        
 
 
         #endregion

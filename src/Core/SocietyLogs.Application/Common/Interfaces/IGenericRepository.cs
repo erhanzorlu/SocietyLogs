@@ -19,6 +19,10 @@ namespace SocietyLogs.Application.Common.Interfaces
 
         Task<List<T>> GetAllAsync(bool tracking = true, bool ignoreQueryFilters = false, CancellationToken cancellationToken = default);
 
+        // --- İSTEDİĞİN 1. FONKSİYON: SADECE SİLİNMEYENLERİ GETİR ---
+        // Varsayılan olarak EF Core'daki Global Filter (IsDeleted==false) devrede olduğu için
+        // ignoreQueryFilters: false gönderiyoruz.
+        Task<List<T>> GetAllActiveAsync(bool tracking = true, CancellationToken cancellationToken = default);
 
         Task<T?> GetByIdAsync(Guid id, bool tracking = true, bool ignoreQueryFilters = false, CancellationToken cancellationToken = default);
 

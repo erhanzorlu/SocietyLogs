@@ -18,7 +18,6 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// --- HTTP PIPELINE (Uygulama Akýþý) ---
 
 if (app.Environment.IsDevelopment())
 {
