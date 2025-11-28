@@ -53,9 +53,9 @@ try
     // app.UseHttpsRedirection(); // Geliþtirme ortamýnda kapalý kalabilir
 
     app.UseAuthorization();
-
+    app.UseSerilogRequestLogging();
     app.MapControllers();
-
+    app.UseMiddleware<SocietyLogs.API.Middlewares.GlobalExceptionHandlerMiddleware>();
     app.Run();
 }
 catch (Exception ex)
