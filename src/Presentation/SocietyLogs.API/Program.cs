@@ -1,39 +1,70 @@
-using SocietyLogs.Application; 
-using SocietyLogs.Persistence; 
+using SocietyLogs.Application;
+using SocietyLogs.Persistence;
+using Serilog; // <-- Serilog kütüphanesini ekledik
 
-var builder = WebApplication.CreateBuilder(args);
+// 1. ADIM: Bootstrap Logger
+// Uygulama daha ayaða kalkmadan (Builder oluþmadan) loglamayý baþlatýyoruz.
+// Böylece baþlangýç aþamasýndaki hatalarý (örn: appsettings hatasý) bile yakalayabiliriz.
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
-// --- 1. KENDÝ SERVÝSLERÝMÝZ (Onion Architecture Baðlantýlarý) ---
-// Infrastructure (Veritabaný, Repo, Interceptor)
-//builder.Services.AddInfrastructureServices(builder.Configuration);
-// 1. Application Katmaný: "Benim servislerimi yükle"
-builder.Services.AddApplicationServices();
-
-// 2. Persistence Katmaný: "Veritabaný ve repolarý ayarla"
-builder.Services.AddPersistenceServices(builder.Configuration);
-// --- 2. API STANDART SERVÝSLERÝ ---
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-
-// --- 3. SWAGGER SERVÝSÝ (Arayüz Ýçin) ---
-// AddOpenApi yerine AddSwaggerGen kullanýyoruz.
-builder.Services.AddSwaggerGen();
-
-var app = builder.Build();
-
-
-if (app.Environment.IsDevelopment())
+try
 {
-    // Swagger JSON dökümanýný oluþtur
-    app.UseSwagger();
-    // Swagger UI (Arayüzü) aktif et - Tarayýcýda göreceðin ekran
-    app.UseSwaggerUI();
+    Log.Information("SocietyLogs Uygulamasý Baþlatýlýyor...");
+
+    var builder = WebApplication.CreateBuilder(args);
+
+    // 2. ADIM: Host Entegrasyonu
+    // .NET'in varsayýlan loglama mekanizmasýný eziyoruz, patron artýk Serilog.
+    // Ayarlarý appsettings.json dosyasýndan okumasýný söylüyoruz.
+    builder.Host.UseSerilog((context, services, configuration) => configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext());
+
+    // --- KATMAN SERVÝSLERÝ (Onion Architecture) ---
+    // Application Katmaný (MediatR, Validator, Behaviors)
+    builder.Services.AddApplicationServices();
+
+    // Persistence Katmaný (Veritabaný, Repo, UoW)
+    builder.Services.AddPersistenceServices(builder.Configuration);
+
+    // --- API SERVÝSLERÝ ---
+    builder.Services.AddControllers();
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
+
+    var app = builder.Build();
+
+    // 3. ADIM: HTTP Trafik Ýzleme (Request Logging)
+    // Gelen her isteði (GET, POST) ve süresini ölçüp loglar.
+    // Middleware zincirinin en tepesine yakýn olmalý.
+    app.UseSerilogRequestLogging();
+
+    // --- UYGULAMA AKIÞI (Pipeline) ---
+
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+
+    // app.UseHttpsRedirection(); // Geliþtirme ortamýnda kapalý kalabilir
+
+    app.UseAuthorization();
+
+    app.MapControllers();
+
+    app.Run();
 }
-
-//app.UseHttpsRedirection();//
-
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();
+catch (Exception ex)
+{
+    // Uygulama çökerse (Crash) buraya düþer ve sebebini loglarýz.
+    Log.Fatal(ex, "Uygulama beklenmedik bir hata yüzünden durdu!");
+}
+finally
+{
+    // Uygulama kapanýrken tamponda kalan son loglarý diske yazar ve kapatýr.
+    Log.CloseAndFlush();
+}
