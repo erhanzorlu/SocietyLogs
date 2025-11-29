@@ -19,6 +19,9 @@ namespace SocietyLogs.Application
 
                 // Pipeline Behavior (Validation için bu şart!)
                 cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+
+                // Trafik Polisini (Logging) devreye alıyoruz
+                cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
             });
 
             // 2. FluentValidation
