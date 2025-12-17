@@ -1,9 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using SocietyLogs.Domain.Common;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using SocietyLogs.Domain.Entities; // BaseEntity için
+using SocietyLogs.Domain.Entities.Identity; // AppUser için
 
 namespace SocietyLogs.Persistence.Interceptors
 {
@@ -17,27 +16,49 @@ namespace SocietyLogs.Persistence.Interceptors
             var dbContext = eventData.Context;
             if (dbContext == null) return base.SavingChangesAsync(eventData, result, cancellationToken);
 
-            foreach (var entry in dbContext.ChangeTracker.Entries<BaseEntity>())
+            // DÜZELTME 1: BaseEntity yerine IEntity arayüzü üzerinden dönüyoruz.
+            // Böylece hem BaseEntity'leri hem AppUser'ı yakalayabiliriz.
+            foreach (var entry in dbContext.ChangeTracker.Entries<IEntity>())
             {
-                // 1. EKLEME (INSERT)
-                if (entry.State == EntityState.Added)
+                // --- 1. ADIM: SOFT DELETE (HER İKİSİ İÇİN ORTAK) ---
+                // Hem AppUser hem BaseEntity "ISoftDeletable" olduğu için bu kod ikisinde de çalışır.
+                if (entry.State == EntityState.Deleted && entry.Entity is ISoftDeletable softDeletable)
                 {
-                    entry.Entity.CreatedDate = DateTime.UtcNow;
-                    entry.Entity.IsDeleted = false; // Garanti olsun
+                    entry.State = EntityState.Modified; // Silmeyi iptal et
+                    softDeletable.IsDeleted = true;     // Bayrağı kaldır
+                    softDeletable.DeletedDate = DateTime.UtcNow;
                 }
 
-                // 2. GÜNCELLEME (UPDATE)
-                if (entry.State == EntityState.Modified)
-                {
-                    entry.Entity.UpdatedDate = DateTime.UtcNow;
-                }
+                // --- 2. ADIM: TARİHÇE (KİMLİK KONTROLÜ İLE) ---
 
-                // 3. SİLME (SOFT DELETE) - Vizyon Hamlesi
-                if (entry.State == EntityState.Deleted)
+                // SENARYO A: Standart Entityler (Category, Company vs.)
+                if (entry.Entity is BaseEntity baseEntity)
                 {
-                    entry.State = EntityState.Modified; // Silme işlemini iptal et, güncellemeye çevir
-                    entry.Entity.IsDeleted = true;      // Silindi işaretle
-                    entry.Entity.DeletedDate = DateTime.UtcNow;
+                    switch (entry.State)
+                    {
+                        case EntityState.Added:
+                            baseEntity.CreatedDate = DateTime.UtcNow;
+                            baseEntity.IsDeleted = false;
+                            break;
+                        case EntityState.Modified:
+                            baseEntity.UpdatedDate = DateTime.UtcNow;
+                            break;
+                    }
+                }
+                // SENARYO B: Identity Kullanıcısı (AppUser)
+                // AppUser, BaseEntity olmadığı için onu burada özel olarak yakalıyoruz.
+                else if (entry.Entity is AppUser userEntity)
+                {
+                    switch (entry.State)
+                    {
+                        case EntityState.Added:
+                            userEntity.CreatedDate = DateTime.UtcNow;
+                            userEntity.IsDeleted = false;
+                            break;
+                        case EntityState.Modified:
+                            userEntity.UpdatedDate = DateTime.UtcNow;
+                            break;
+                    }
                 }
             }
 

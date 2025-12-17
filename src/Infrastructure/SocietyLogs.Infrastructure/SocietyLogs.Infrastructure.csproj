@@ -10,7 +10,14 @@
     <Folder Include="Adapters\Cache\" />
     <Folder Include="Adapters\Storage\" />
     <Folder Include="BackgroundJobs\" />
-    <Folder Include="Services\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\SocietyLogs.Application\SocietyLogs.Application.csproj" />
   </ItemGroup>
 
 </Project>

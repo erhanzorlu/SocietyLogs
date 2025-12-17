@@ -1,6 +1,13 @@
-using SocietyLogs.Application;
-using SocietyLogs.Persistence;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Serilog; // <-- Serilog kütüphanesini ekledik
+using SocietyLogs.Application;
+using SocietyLogs.Application.Common.Interfaces;
+using SocietyLogs.Domain.Entities.Identity;
+using SocietyLogs.Infrastructure.Services;
+using SocietyLogs.Persistence;
+using SocietyLogs.Persistence.Contexts;
+using System.Text;
 
 // 1. ADIM: Bootstrap Logger
 // Uygulama daha ayaða kalkmadan (Builder oluþmadan) loglamayý baþlatýyoruz.
@@ -30,6 +37,40 @@ try
     // Persistence Katmaný (Veritabaný, Repo, UoW)
     builder.Services.AddPersistenceServices(builder.Configuration);
 
+    // 1. Token Servisini Kaydet
+    builder.Services.AddScoped<ITokenService, TokenService>();
+
+    // 2. Identity Ayarlarý (Þifre kurallarý vs.)
+    builder.Services.AddIdentityCore<AppUser>(opt =>
+    {
+        opt.Password.RequireDigit = false;          // Rakam zorunlu mu?
+        opt.Password.RequireLowercase = false;      // Küçük harf?
+        opt.Password.RequireUppercase = false;      // Büyük harf?
+        opt.Password.RequireNonAlphanumeric = false;// !?* gibi iþaretler?
+        opt.Password.RequiredLength = 3;            // Min uzunluk (Test için kýsa tuttum)
+        opt.User.RequireUniqueEmail = true;         // Email benzersiz olmalý
+    })
+    .AddRoles<AppRole>()
+    .AddEntityFrameworkStores<AppDbContext>();
+
+    // 3. Authentication (Kimlik Doðrulama) Ayarlarý - JWT Buraya Baðlanýyor
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Secret"]!)),
+                ValidateIssuer = true,
+                ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+                ValidateAudience = true,
+                ValidAudience = builder.Configuration["JwtSettings:Audience"],
+                ValidateLifetime = true, // Süresi dolmuþ tokený reddet
+                ClockSkew = TimeSpan.Zero // Sunucu saat farkýný yok say
+            };
+        });
+
+
     // --- API SERVÝSLERÝ ---
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
@@ -51,7 +92,7 @@ try
     }
 
     // app.UseHttpsRedirection(); // Geliþtirme ortamýnda kapalý kalabilir
-
+    app.UseAuthentication(); // <-- EKLENDÝ: Kimlik sor (Kimsin?)
     app.UseAuthorization();
     app.UseSerilogRequestLogging();
     app.MapControllers();
