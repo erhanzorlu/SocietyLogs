@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Serilog; // <-- Serilog kütüphanesini ekledik
+using Serilog; 
 using SocietyLogs.Application;
 using SocietyLogs.Application.Common.Interfaces;
 using SocietyLogs.Domain.Entities.Identity;
