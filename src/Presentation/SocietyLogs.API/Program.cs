@@ -1,6 +1,7 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+ï»¿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Serilog; // <-- Serilog kütüphanesini ekledik
+using Microsoft.OpenApi.Models;
+using Serilog; // <-- Serilog kÃ¼tÃ¼phanesini ekledik
 using SocietyLogs.Application;
 using SocietyLogs.Application.Common.Interfaces;
 using SocietyLogs.Domain.Entities.Identity;
@@ -10,50 +11,50 @@ using SocietyLogs.Persistence.Contexts;
 using System.Text;
 
 // 1. ADIM: Bootstrap Logger
-// Uygulama daha ayaða kalkmadan (Builder oluþmadan) loglamayý baþlatýyoruz.
-// Böylece baþlangýç aþamasýndaki hatalarý (örn: appsettings hatasý) bile yakalayabiliriz.
+// Uygulama daha ayaÄŸa kalkmadan (Builder oluÅŸmadan) loglamayÄ± baÅŸlatÄ±yoruz.
+// BÃ¶ylece baÅŸlangÄ±Ã§ aÅŸamasÄ±ndaki hatalarÄ± (Ã¶rn: appsettings hatasÄ±) bile yakalayabiliriz.
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateBootstrapLogger();
 
 try
 {
-    Log.Information("SocietyLogs Uygulamasý Baþlatýlýyor...");
+    Log.Information("SocietyLogs UygulamasÄ± BaÅŸlatÄ±lÄ±yor...");
 
     var builder = WebApplication.CreateBuilder(args);
 
     // 2. ADIM: Host Entegrasyonu
-    // .NET'in varsayýlan loglama mekanizmasýný eziyoruz, patron artýk Serilog.
-    // Ayarlarý appsettings.json dosyasýndan okumasýný söylüyoruz.
+    // .NET'in varsayÄ±lan loglama mekanizmasÄ±nÄ± eziyoruz, patron artÄ±k Serilog.
+    // AyarlarÄ± appsettings.json dosyasÄ±ndan okumasÄ±nÄ± sÃ¶ylÃ¼yoruz.
     builder.Host.UseSerilog((context, services, configuration) => configuration
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext());
 
-    // --- KATMAN SERVÝSLERÝ (Onion Architecture) ---
-    // Application Katmaný (MediatR, Validator, Behaviors)
+    // --- KATMAN SERVÄ°SLERÄ° (Onion Architecture) ---
+    // Application KatmanÄ± (MediatR, Validator, Behaviors)
     builder.Services.AddApplicationServices();
 
-    // Persistence Katmaný (Veritabaný, Repo, UoW)
+    // Persistence KatmanÄ± (VeritabanÄ±, Repo, UoW)
     builder.Services.AddPersistenceServices(builder.Configuration);
 
     // 1. Token Servisini Kaydet
     builder.Services.AddScoped<ITokenService, TokenService>();
 
-    // 2. Identity Ayarlarý (Þifre kurallarý vs.)
+    // 2. Identity AyarlarÄ± (Åžifre kurallarÄ± vs.)
     builder.Services.AddIdentityCore<AppUser>(opt =>
     {
         opt.Password.RequireDigit = false;          // Rakam zorunlu mu?
-        opt.Password.RequireLowercase = false;      // Küçük harf?
-        opt.Password.RequireUppercase = false;      // Büyük harf?
-        opt.Password.RequireNonAlphanumeric = false;// !?* gibi iþaretler?
-        opt.Password.RequiredLength = 3;            // Min uzunluk (Test için kýsa tuttum)
-        opt.User.RequireUniqueEmail = true;         // Email benzersiz olmalý
+        opt.Password.RequireLowercase = false;      // KÃ¼Ã§Ã¼k harf?
+        opt.Password.RequireUppercase = false;      // BÃ¼yÃ¼k harf?
+        opt.Password.RequireNonAlphanumeric = false;// !?* gibi iÅŸaretler?
+        opt.Password.RequiredLength = 3;            // Min uzunluk (Test iÃ§in kÄ±sa tuttum)
+        opt.User.RequireUniqueEmail = true;         // Email benzersiz olmalÄ±
     })
     .AddRoles<AppRole>()
     .AddEntityFrameworkStores<AppDbContext>();
 
-    // 3. Authentication (Kimlik Doðrulama) Ayarlarý - JWT Buraya Baðlanýyor
+    // 3. Authentication (Kimlik DoÄŸrulama) AyarlarÄ± - JWT Buraya BaÄŸlanÄ±yor
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
@@ -65,25 +66,59 @@ try
                 ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
                 ValidateAudience = true,
                 ValidAudience = builder.Configuration["JwtSettings:Audience"],
-                ValidateLifetime = true, // Süresi dolmuþ tokený reddet
-                ClockSkew = TimeSpan.Zero // Sunucu saat farkýný yok say
+                ValidateLifetime = true, // SÃ¼resi dolmuÅŸ tokenÄ± reddet
+                ClockSkew = TimeSpan.Zero // Sunucu saat farkÄ±nÄ± yok say
             };
         });
 
 
-    // --- API SERVÝSLERÝ ---
+    // --- API SERVÄ°SLERÄ° ---
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+    builder.Services.AddSwaggerGen(c =>
+    {
+        c.SwaggerDoc("v1", new OpenApiInfo { Title = "SocietyLogs.WebAPI", Version = "v1" });
+
+        // Kilit (Authorize) butonunu tanÃ½mlÃ½yoruz
+        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Description = @"JWT Authorization header using the Bearer scheme. 
+                      Enter 'Bearer' [space] and then your token in the text input below.
+                      Example: 'Bearer 12345abcdef'",
+            Name = "Authorization",
+            In = ParameterLocation.Header,
+            Type = SecuritySchemeType.ApiKey,
+            Scheme = "Bearer"
+        });
+
+        // Bu gÃ¼venliÃ°i tÃ¼m endpoint'lere zorunlu kÃ½lÃ½yoruz (Kilit ikonlarÃ½ Ã§Ã½kar)
+        c.AddSecurityRequirement(new OpenApiSecurityRequirement()
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                },
+                Scheme = "oauth2",
+                Name = "Bearer",
+                In = ParameterLocation.Header,
+            },
+            new List<string>()
+        }
+    });
+    });
 
     var app = builder.Build();
 
-    // 3. ADIM: HTTP Trafik Ýzleme (Request Logging)
-    // Gelen her isteði (GET, POST) ve süresini ölçüp loglar.
-    // Middleware zincirinin en tepesine yakýn olmalý.
+    // 3. ADIM: HTTP Trafik Ä°zleme (Request Logging)
+    // Gelen her isteÄŸi (GET, POST) ve sÃ¼resini Ã¶lÃ§Ã¼p loglar.
+    // Middleware zincirinin en tepesine yakÄ±n olmalÄ±.
     app.UseSerilogRequestLogging();
 
-    // --- UYGULAMA AKIÞI (Pipeline) ---
+    // --- UYGULAMA AKIÅžI (Pipeline) ---
 
     if (app.Environment.IsDevelopment())
     {
@@ -91,8 +126,8 @@ try
         app.UseSwaggerUI();
     }
 
-    // app.UseHttpsRedirection(); // Geliþtirme ortamýnda kapalý kalabilir
-    app.UseAuthentication(); // <-- EKLENDÝ: Kimlik sor (Kimsin?)
+    // app.UseHttpsRedirection(); // GeliÅŸtirme ortamÄ±nda kapalÄ± kalabilir
+    app.UseAuthentication(); // <-- EKLENDÄ°: Kimlik sor (Kimsin?)
     app.UseAuthorization();
     app.UseSerilogRequestLogging();
     app.MapControllers();
@@ -101,11 +136,11 @@ try
 }
 catch (Exception ex)
 {
-    // Uygulama çökerse (Crash) buraya düþer ve sebebini loglarýz.
-    Log.Fatal(ex, "Uygulama beklenmedik bir hata yüzünden durdu!");
+    // Uygulama Ã§Ã¶kerse (Crash) buraya dÃ¼ÅŸer ve sebebini loglarÄ±z.
+    Log.Fatal(ex, "Uygulama beklenmedik bir hata yÃ¼zÃ¼nden durdu!");
 }
 finally
 {
-    // Uygulama kapanýrken tamponda kalan son loglarý diske yazar ve kapatýr.
+    // Uygulama kapanÄ±rken tamponda kalan son loglarÄ± diske yazar ve kapatÄ±r.
     Log.CloseAndFlush();
 }
