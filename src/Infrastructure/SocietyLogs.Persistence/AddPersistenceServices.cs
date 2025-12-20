@@ -5,6 +5,7 @@ using SocietyLogs.Application.Common.Interfaces;
 using SocietyLogs.Persistence.Contexts;
 using SocietyLogs.Persistence.Interceptors;
 using SocietyLogs.Persistence.Repositories;
+using SocietyLogs.Persistence.Services;
 
 namespace SocietyLogs.Persistence
 {
@@ -28,6 +29,7 @@ namespace SocietyLogs.Persistence
             // 3. Repositories
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<IFileService, LocalFileService>();
 
             // Özel Repository varsa buraya eklenir
             // services.AddScoped<ICategoryRepository, CategoryRepository>();

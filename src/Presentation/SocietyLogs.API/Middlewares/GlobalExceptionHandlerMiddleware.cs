@@ -1,86 +1,84 @@
-﻿using System.Net;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging; // ILogger için
+using SocietyLogs.Application.Common.Wrappers; // ServiceResponse burada
+using FluentValidation; // ValidationException için şart
+using System.Net;
 using System.Text.Json;
-using FluentValidation;
-using Serilog;
 
 namespace SocietyLogs.API.Middlewares
 {
     public class GlobalExceptionHandlerMiddleware
     {
         private readonly RequestDelegate _next;
+        private readonly ILogger<GlobalExceptionHandlerMiddleware> _logger;
 
-        public GlobalExceptionHandlerMiddleware(RequestDelegate next)
+        public GlobalExceptionHandlerMiddleware(RequestDelegate next, ILogger<GlobalExceptionHandlerMiddleware> logger)
         {
             _next = next;
+            _logger = logger;
         }
 
         public async Task Invoke(HttpContext context)
         {
             try
             {
-                // Trafik normal akışında devam etsin...
                 await _next(context);
             }
             catch (Exception ex)
             {
-                // BİR HATA OLDU! 🚨
-                // Akışı durdur, hatayı yakala ve özel cevap hazırla.
                 await HandleExceptionAsync(context, ex);
             }
         }
 
-        private Task HandleExceptionAsync(HttpContext context, Exception exception)
+        private async Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
             context.Response.ContentType = "application/json";
 
-            // Varsayılan: 500 Internal Server Error (Sunucu Hatası)
-            var response = new ErrorResponse
-            {
-                StatusCode = (int)HttpStatusCode.InternalServerError,
-                Title = "Sunucu Hatası",
-                Detail = "Beklenmedik bir hata oluştu. Lütfen destek ekibiyle iletişime geçin."
-            };
+            // Varsayılan değerler (500 Hatası)
+            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+            var responseModel = new ServiceResponse<string>("Beklenmedik bir hata oluştu.");
+            responseModel.Success = false;
 
-            // Hata Tipine Göre Özelleştirme (Switch Case)
             switch (exception)
             {
-                // Eğer hata Validation Hatası ise (Eksik veri vs.)
+                // 1. VALIDATION HATASI (400)
+                // FluentValidation'dan fırlatılan hataları yakalar.
                 case ValidationException validationEx:
-                    response.StatusCode = (int)HttpStatusCode.BadRequest;
-                    response.Title = "Doğrulama Hatası";
-                    response.Detail = "Girdiğiniz verilerde hatalar var.";
-                    response.ValidationErrors = validationEx.Errors
-                        .Select(e => e.ErrorMessage).ToList();
+                    context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                    responseModel.Message = "Girdiğiniz verilerde hatalar var.";
+                    // Hataları listeye dolduruyoruz
+                    responseModel.Errors = validationEx.Errors.Select(e => e.ErrorMessage).ToList();
                     break;
 
-                // Eğer "Kayıt Bulunamadı" hatası ise (İleride yazacağız)
+                // 2. BULUNAMADI HATASI (404)
+                // Veritabanında ID bulunamazsa fırlatılan hata
                 case KeyNotFoundException:
-                    response.StatusCode = (int)HttpStatusCode.NotFound;
-                    response.Title = "Bulunamadı";
-                    response.Detail = "İstediğiniz kayıt sistemde yok.";
+                    context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                    responseModel.Message = "Aradığınız kayıt bulunamadı.";
                     break;
 
-                // Diğer bilinmeyen hatalar (Veritabanı koptu, Null Reference vs.)
+                // 3. YETKİSİZ ERİŞİM (401 - Opsiyonel, genelde Identity halleder ama biz de yakalayabiliriz)
+                case UnauthorizedAccessException:
+                    context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                    responseModel.Message = "Bu işlem için yetkiniz yok.";
+                    break;
+
+                // 4. KRİTİK HATALAR (500)
                 default:
-                    // Sadece bilinmeyen kritik hataları LOGLA.
-                    // Validation hatalarını loglamaya gerek yok, kirlilik yapar.
-                    Log.Error(exception, "Beklenmedik Hata!");
+                    // Sadece buraya düşen (beklenmedik) hataları logluyoruz.
+                    // Validation hatalarını loglayıp disk doldurmaya gerek yok.
+                    _logger.LogError(exception, "Kritik Sistem Hatası!");
+
+                    // Canlı ortamda (Production) gerçek hata mesajını gizlemek güvenlik gereğidir.
+                    // Ama Development ortamındaysan hatayı görebilirsin:
+                    responseModel.Message = "Sunucu hatası.";
+                    responseModel.Errors = new List<string> { exception.Message };
                     break;
             }
 
-            // JSON'a çevir ve gönder
-            context.Response.StatusCode = response.StatusCode;
-            var jsonResponse = JsonSerializer.Serialize(response);
-            return context.Response.WriteAsync(jsonResponse);
+            // JSON Olarak Standart Zarfı Gönder
+            var result = JsonSerializer.Serialize(responseModel);
+            await context.Response.WriteAsync(result);
         }
-    }
-
-    // Kullanıcıya dönecek şık JSON formatı
-    public class ErrorResponse
-    {
-        public int StatusCode { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public string Detail { get; set; } = string.Empty;
-        public List<string>? ValidationErrors { get; set; }
     }
 }

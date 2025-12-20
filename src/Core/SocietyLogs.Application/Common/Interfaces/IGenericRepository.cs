@@ -11,6 +11,9 @@ namespace SocietyLogs.Application.Common.Interfaces
     {
         // --- Read (Okuma) İşlemleri (Performans için 'tracking' parametresi var) ---
 
+        // 👇 BU METODU EKLE (Sorgu yeteneği kazandırır)
+        IQueryable<T> GetAllAsQueryable(bool tracking = true);
+
         // GetSingleAsync'e parametreyi ekliyoruz.
         Task<T?> GetSingleAsync(Expression<Func<T, bool>> predicate, bool tracking = true, bool ignoreQueryFilters = false, CancellationToken cancellationToken = default);
 

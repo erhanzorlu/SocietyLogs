@@ -1,0 +1,159 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>SocietyLogs Test Paneli</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: auto;
+        }
+
+        .box {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+
+        input {
+            display: block;
+            margin-bottom: 10px;
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+            button:hover {
+                background: #0056b3;
+            }
+
+        .status {
+            margin-top: 10px;
+            font-weight: bold;
+            word-break: break-all;
+        }
+
+        img {
+            max-width: 100%;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>🛠️ Backend Test Paneli</h2>
+
+    <div class="box">
+        <h3>1. Giriş Yap (Token Al)</h3>
+        <input type="text" id="email" value="admin@societylogs.com" placeholder="Email">
+        <input type="password" id="password" value="Admin123!" placeholder="Şifre">
+        <button onclick="login()">Giriş Yap</button>
+        <div id="loginStatus" class="status" style="color:red;">Giriş Yapılmadı</div>
+    </div>
+
+    <div class="box">
+        <h3>2. Profil Resmi Yükle</h3>
+        <input type="file" id="fileInput">
+        <button onclick="uploadImage()">Resmi Gönder</button>
+        <div id="uploadStatus" class="status"></div>
+        <img id="previewImage" style="display:none;" />
+    </div>
+
+    <script>
+        // API Adresin (API çalışırken tarayıcıdaki adresle aynı olmalı)
+        // Aynı sunucuda olduğumuz için direkt "/api" kullanabiliriz.
+        const API_URL = "/api";
+        let token = localStorage.getItem("authToken");
+
+        if(token) {
+            document.getElementById("loginStatus").innerText = "✅ Token Hafızada Var!";
+            document.getElementById("loginStatus").style.color = "green";
+        }
+
+        async function login() {
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+
+            try {
+                const response = await fetch(`${API_URL}/Auth/Login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    token = data.accessToken; // Token'ı al
+                    localStorage.setItem("authToken", token); // Hafızaya at
+
+                    document.getElementById("loginStatus").innerText = "✅ Giriş Başarılı! Token alındı.";
+                    document.getElementById("loginStatus").style.color = "green";
+                } else {
+                    document.getElementById("loginStatus").innerText = "❌ Hata: " + response.status;
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Bir hata oluştu!");
+            }
+        }
+
+        async function uploadImage() {
+            if (!token) {
+                alert("Önce giriş yapmalısın!");
+                return;
+            }
+
+            const fileInput = document.getElementById("fileInput");
+            if (fileInput.files.length === 0) {
+                alert("Dosya seçmedin!");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]); // Backend'de 'file' parametresini bekliyoruz
+
+            document.getElementById("uploadStatus").innerText = "Yükleniyor...";
+
+            try {
+                const response = await fetch(`${API_URL}/Users/upload-avatar`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${token}` // Token'ı Header'a ekle
+                        // Content-Type: multipart/form-data kendisi eklenir, sakın elle yazma!
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    document.getElementById("uploadStatus").innerText = "✅ Yüklendi: " + result.imageUrl;
+
+                    // Resmi göster (Başına slash koymayı unutma)
+                    const img = document.getElementById("previewImage");
+                    img.src = "/" + result.imageUrl;
+                    img.style.display = "block";
+                } else {
+                    document.getElementById("uploadStatus").innerText = "❌ Hata: " + response.status;
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById("uploadStatus").innerText = "Hata oluştu.";
+            }
+        }
+    </script>
+</body>
+</html>

@@ -20,6 +20,17 @@ namespace SocietyLogs.Persistence.Repositories
         }
 
         #region Read Operations
+
+        public IQueryable<T> GetAllAsQueryable(bool tracking = true)
+        {
+            var query = _dbSet.AsQueryable();
+
+            if (!tracking)
+                query = query.AsNoTracking();
+
+            return query; // Veritabanına gitmedi, sorguyu teslim etti.
+        }
+
         public async Task<T?> GetByIdAsync(Guid id, bool tracking = true, bool ignoreQueryFilters = false, CancellationToken cancellationToken = default)
         {
             var query = _dbSet.AsQueryable();
