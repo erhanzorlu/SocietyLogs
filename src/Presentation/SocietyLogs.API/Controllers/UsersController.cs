@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using SocietyLogs.Application.Features.Users.Commands.UpdateProfile;
 using SocietyLogs.Application.Features.Users.Commands.UploadProfileImage;
 using System.Security.Claims;
 
@@ -19,23 +20,32 @@ namespace SocietyLogs.API.Controllers
         }
 
         [HttpPost("upload-avatar")]
-        // DİKKAT: [FromForm] ifadesini sildik. Sadece IFormFile file kaldı.
-        public async Task<IActionResult> UploadAvatar(IFormFile file)
+        public async Task<IActionResult> UploadAvatar([FromForm] UploadProfileImageCommand command)
         {
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var response = await _mediator.Send(command);
 
-            if (string.IsNullOrEmpty(userIdString))
-                return Unauthorized();
+            if (!response.Success)
+                return BadRequest(response); // Hata mesajı döner
 
-            var command = new UploadProfileImageCommand
+            return Ok(response); // { Data: "/uploads/...", Success: true, ... }
+        }
+
+        // PUT: api/users/update-profile
+        [HttpPut("update-profile")]
+        public async Task<IActionResult> UpdateProfile([FromForm] UpdateUserProfileCommand command)
+        {
+            // 💡 NOT: UserId parametresini dışarıdan almıyoruz.
+            // Handler içinde CurrentUserService (Token) üzerinden otomatik dolacak.
+
+            // [FromForm] sayesinde Swagger'da dosya yükleme butonu çıkacak.
+            var response = await _mediator.Send(command);
+
+            if (!response.Success)
             {
-                ProfileImage = file,
-                UserId = Guid.Parse(userIdString)
-            };
+                return BadRequest(response);
+            }
 
-            var result = await _mediator.Send(command);
-
-            return Ok(new { ImageUrl = result });
+            return Ok(response);
         }
     }
 }
