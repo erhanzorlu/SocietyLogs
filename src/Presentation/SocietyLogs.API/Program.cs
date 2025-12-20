@@ -2,6 +2,7 @@
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using SocietyLogs.API.Services;
 using SocietyLogs.Application;
 using SocietyLogs.Application.Common.Interfaces;
 using SocietyLogs.Domain.Entities.Identity;
@@ -71,7 +72,8 @@ try
             };
         });
 
-
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
     // --- API SERVİSLERİ ---
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();

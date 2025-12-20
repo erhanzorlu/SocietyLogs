@@ -13,5 +13,6 @@
   </Folder>
   <Folder Name="/src/Presentation/">
     <Project Path="src/Presentation/SocietyLogs.API/SocietyLogs.API.csproj" />
+    <Project Path="src/Presentation/SocietyLogs.WebUI/SocietyLogs.WebUI.csproj" Id="85876ee9-a1a0-4247-b8a9-1299ae8f6fe5" />
   </Folder>
 </Solution>

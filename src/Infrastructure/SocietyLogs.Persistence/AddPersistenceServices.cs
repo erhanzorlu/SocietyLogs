@@ -30,6 +30,7 @@ namespace SocietyLogs.Persistence
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IFileService, LocalFileService>();
+            services.AddScoped<IUserService, UserService>();
 
             // Özel Repository varsa buraya eklenir
             // services.AddScoped<ICategoryRepository, CategoryRepository>();
