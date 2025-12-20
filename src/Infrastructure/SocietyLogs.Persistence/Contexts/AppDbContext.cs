@@ -36,6 +36,7 @@ namespace SocietyLogs.Persistence.Contexts
         public DbSet<Community> Communities { get; set; }
         public DbSet<CommunityMember> CommunityMembers { get; set; }
         public DbSet<CommunitySocialMedia> CommunitySocialMedias { get; set; }
+        public DbSet<AppSetting> AppSettings { get; set; }
 
         // =================================================================
         // 3. SOLOG (SOSYAL AKIŞ) MODÜLÜ

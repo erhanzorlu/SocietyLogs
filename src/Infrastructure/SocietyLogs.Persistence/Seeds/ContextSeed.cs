@@ -61,6 +61,28 @@ namespace SocietyLogs.Persistence.Seeds
                 await context.PointDefinitions.AddRangeAsync(rules);
                 await context.SaveChangesAsync();
             }
+
+            // 4. App Settings
+            if (!await context.AppSettings.AnyAsync())
+            {
+                var settings = new List<AppSetting>
+                {
+                    new AppSetting
+                    {
+                        Id = Guid.NewGuid(),
+                        Key = "Community_Creation_Limit_Hours",
+                        Value = "48", // Varsayılan değer
+                        Description = "Kullanıcının yeni bir topluluk oluşturması için beklemesi gereken süre (Saat).",
+                        CreatedDate = DateTime.UtcNow,
+                        IsDeleted = false
+                    },
+                    // İlerde başka ayarlar eklemek istersen buraya virgül koyup devam edersin:
+                    // new AppSetting { Key = "Max_Upload_Size_MB", Value = "5" ... }
+                };
+
+                await context.AppSettings.AddRangeAsync(settings);
+                await context.SaveChangesAsync();
+            }
         }
     }
 }
